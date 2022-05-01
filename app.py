@@ -61,7 +61,7 @@ def total():
         rows = []
         for row in c.execute("SELECT drink_id , SUM(price) from orders WHERE order_date = DATE('now') GROUP BY drink_id"):
             rows.append({"drink id":row[0],"total price":row[1]})
-        print (rows)
+        print ()
         return {"total":rows}
 
 
