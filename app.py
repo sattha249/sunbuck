@@ -1,6 +1,8 @@
 from flask import Flask ,request
 from flask_restful import Api
 import sqlite3
+from datetime import datetime
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -32,6 +34,8 @@ def index():
 
 @app.route('/buy',methods =['GET','POST'])
 def buy():
+    total = 0
+    menu = []
     conn = sqlite3.connect('test.sqlite')
     c = conn.cursor()
     data = request.get_json()
@@ -43,15 +47,32 @@ def buy():
         print (rows)
         return {"orders":rows}
     if request.method == 'POST':
-        c.execute("SELECT {},id FROM coffees WHERE name = '{}'".format(data['type'],data['name']))
-        drink_type = False if data['type'] == 'hot' else True
-        price = c.fetchone()
-        print (price)
-        if price is None:
-            return "Sorry We don't have this Menu"
-        c.execute("INSERT INTO orders (drink_id,drink_type,price) VALUES ({},{},{} )".format(price[1],drink_type,price[0]))
+        if ',' in data['name']:
+            data['name'] = data['name'].split(',')
+            menu = data['name']
+            print(menu)        
+        for bev in menu:
+            quantity = 1   
+            if '*' in bev:
+                quantity = bev.split('*')
+                bev = quantity[0]
+                print(quantity[1])
+                if quantity[1] == '':
+                    return {'Message':"Please insert number after *"}
+                quantity = int(quantity[1])
+            c.execute("SELECT {},id FROM coffees WHERE name = '{}'".format(data['type'],bev))
+            drink_type = False if data['type'] == 'hot' else True
+            price = c.fetchone()
+            print (price)
+            if price is None:
+                return {'Message':"Sorry We don't have this Menu"}
+            for i in range(quantity):
+                c.execute("INSERT INTO orders (drink_id,drink_type,price) VALUES ({},{},{} )".format(price[1],drink_type,price[0]))
+                total += price[0]
         conn.commit()
-        return {"price":price[0]}
+        now = datetime.now()
+        now = now.strftime("%d/%m/%Y %H:%M:%S")
+        return {"price":total,'time':now}
 
 @app.route('/total',methods =['GET'])
 def total():
